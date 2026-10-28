@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://vdczzukvsqkwxuuqnspw.supabase.co wss://vdczzukvsqkwxuuqnspw.supabase.co; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>Curva Glicêmica da Wiliany</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Exo+2:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>html,body{margin:0}[hidden]{display:none!important}</style>
+<style>
+/* Layout: painel HUD pessoal, uma coluna; saudação + anel de meta, cartões de leitura, gráfico, grade, terminal de entrada */
+:root{
+  --bg:#05080f; --bg2:#0a1220; --surface:rgba(16,28,48,.72); --ink:#dbe9ff; --muted:#7f93b3; --line:rgba(94,234,255,.16);
+  --accent:#43e6ff; --accent2:#a46bff; --accent-soft:rgba(67,230,255,.10); --ok:#3dffb0; --ok-soft:rgba(61,255,176,.10); --high:#ff5d8f; --high-soft:rgba(255,93,143,.14);
+  --glow:0 0 18px rgba(67,230,255,.35);
+  --f-display:"Chakra Petch",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Exo 2",ui-sans-serif,system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  background-image:radial-gradient(1200px 600px at 85% -10%,rgba(164,107,255,.18),transparent 60%),radial-gradient(900px 500px at -10% 10%,rgba(67,230,255,.12),transparent 60%),linear-gradient(rgba(94,234,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,255,.05) 1px,transparent 1px);
+  background-size:auto,auto,36px 36px,36px 36px;background-attachment:fixed}
+.wrap{max-width:1000px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:26px}
+h1,h2{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1;letter-spacing:.02em}
+h1{font-size:clamp(1.9rem,5.5vw,2.9rem)}
+h1 .name{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:8px;height:8px;background:var(--accent);box-shadow:var(--glow);transform:rotate(45deg)}
+h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.eyebrow{font-family:var(--f-num);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.eyebrow .live{color:var(--ok)}
+.eyebrow .live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.lede{color:var(--muted);max-width:62ch;margin:8px 0 0}
+.hero{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.hero>div{min-width:0}
+@media (max-width:620px){.hero{grid-template-columns:1fr}}
+.ring{width:160px;height:160px;justify-self:center}
+.metas{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.meta{font-family:var(--f-num);font-size:.78rem;padding:4px 10px;border:1px solid var(--line);border-radius:4px;background:var(--accent-soft);color:var(--ink);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+.meta b{color:var(--accent);font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{position:relative;background:var(--surface);border:1px solid var(--line);padding:14px 16px;display:grid;gap:2px;backdrop-filter:blur(6px);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+.tile::before{content:"";position:absolute;left:0;top:0;width:28px;height:2px;background:var(--accent);box-shadow:var(--glow)}
+.tile .n{font-family:var(--f-num);font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink);text-shadow:0 0 12px rgba(67,230,255,.35)}
+.tile .n small{font-size:.8rem;color:var(--muted);font-weight:500}
+.tile .l{color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em}
+.tile.alert::before{background:var(--high);box-shadow:0 0 12px var(--high)}
+.tile.alert .n{color:var(--high);text-shadow:0 0 12px rgba(255,93,143,.45)}
+.tile.good::before{background:var(--ok);box-shadow:0 0 12px var(--ok)}
+section{display:grid;gap:12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);padding:16px;min-width:0;backdrop-filter:blur(6px);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+.chart{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.scroll{overflow-x:auto}
+table{border-collapse:separate;border-spacing:4px;width:100%;min-width:720px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 6px;text-align:center;border-radius:3px}
+th{font-family:var(--f-num);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line)}
+td.d{font-family:var(--f-num);font-size:.85rem;text-align:left;white-space:nowrap;color:var(--accent)}
+td.v{font-family:var(--f-num);cursor:pointer;background:rgba(255,255,255,.02);border:1px solid rgba(94,234,255,.06);transition:box-shadow .15s,border-color .15s}
+td.v:hover,td.v:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--glow)}
+td.v.in{background:var(--ok-soft);color:var(--ok);border-color:rgba(61,255,176,.25)}
+td.v.out{background:var(--high-soft);color:var(--high);font-weight:700;border-color:rgba(255,93,143,.45);box-shadow:0 0 12px rgba(255,93,143,.25)}
+td.v small{display:block;font-size:.66rem;color:var(--muted);font-weight:500}
+.note{font-size:.85rem;color:var(--muted);margin:0}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end}
+label{display:grid;gap:4px;font-family:var(--f-num);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input,select{font:inherit;font-family:var(--f-num);font-size:1rem;letter-spacing:0;text-transform:none;color:var(--ink);background:rgba(5,8,15,.7);border:1px solid var(--line);border-radius:3px;padding:9px 10px;min-width:0}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:var(--glow)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.full{grid-column:1/-1}
+.actions{display:flex;flex-wrap:wrap;gap:10px;grid-column:1/-1}
+button{font-family:var(--f-display);font-size:.95rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:10px 18px;border:1px solid var(--accent);background:linear-gradient(90deg,rgba(67,230,255,.25),rgba(164,107,255,.25));color:var(--ink);cursor:pointer;box-shadow:var(--glow);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+button:hover{background:linear-gradient(90deg,rgba(67,230,255,.4),rgba(164,107,255,.4))}
+button.ghost{background:transparent;color:var(--accent);box-shadow:none}
+button.danger{background:transparent;color:var(--high);border-color:var(--high);box-shadow:none}
+.status{font-family:var(--f-num);font-size:.85rem;color:var(--accent);grid-column:1/-1;min-height:1.4em;margin:0}
+.status:not(:empty)::before{content:"> "}
+.empty{color:var(--muted);text-align:center;padding:28px 8px;font-family:var(--f-num)}
+.obs{display:grid;gap:8px;margin:0;list-style:none}
+.obs li{font-size:.92rem;border-left:2px solid var(--accent2);padding-left:10px}
+.obs li b{font-family:var(--f-num);font-weight:700;color:var(--accent)}
+footer{font-size:.8rem;color:var(--muted);font-family:var(--f-num)}
+.daycards{display:none;gap:10px}
+.day{background:var(--surface);border:1px solid var(--line);padding:12px 14px;display:grid;gap:8px;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.day h3{margin:0;font-family:var(--f-num);font-size:.9rem;color:var(--accent);font-weight:700}
+.day ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.day li button{all:unset;box-sizing:border-box;width:100%;min-height:48px;display:grid;gap:0;padding:6px 10px;border:1px solid var(--line);border-radius:3px;cursor:pointer;font-family:var(--f-num)}
+.day li button:focus-visible{outline:2px solid var(--accent)}
+.day li .k{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.day li .vv{font-size:1.15rem;font-weight:700}
+.day li.in button{background:var(--ok-soft);color:var(--ok);border-color:rgba(61,255,176,.25)}
+.day li.out button{background:var(--high-soft);color:var(--high);border-color:rgba(255,93,143,.45)}
+[hidden]{display:none!important}
+.area{display:contents}
+.pdfbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.pdfbar label{min-width:140px;flex:1 1 140px}
+.pdfbar button{flex:0 0 auto}
+.printhead{display:none}
+@media print{
+  :root{--bg:#fff;--bg2:#fff;--surface:#fff;--ink:#111;--muted:#555;--line:#ccc;--accent:#0b5d8a;--accent2:#5b3aa0;--ok:#137a4a;--ok-soft:#e6f4ec;--high:#b3261e;--high-soft:#fbe4e2;--glow:none;color-scheme:light}
+  @page{size:A4;margin:14mm}
+  body{background:#fff!important;background-image:none!important;font-size:11pt}
+  .noprint,#authSec,#resetSec,#novaSec,#accSec,#waitNote,#noView,.whoami,.eyebrow,.metas~*,#ringBox,.daycards,.lede{display:none!important}
+  #tableBox{display:block!important;overflow:visible}
+  table{min-width:0;font-size:9pt}
+  .wrap{padding:0;max-width:none;gap:14px}
+  .card,.tile{clip-path:none;backdrop-filter:none;border-color:#ccc;break-inside:avoid}
+  .tile .n,.tile.alert .n{text-shadow:none}
+  h1{font-size:18pt}
+  h2::before{box-shadow:none}
+  .printhead{display:block;font-size:10pt;color:#333}
+  h1 .name{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#111}
+  #hello,h1 .sep{display:none}
+  h1::before{content:"Curva glicêmica · "}
+  td.v.out{box-shadow:none}
+  section{break-inside:avoid}
+}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tab{background:transparent;color:var(--muted);border:1px solid var(--line);box-shadow:none;font-size:.8rem;padding:8px 12px}
+.tab.on{color:var(--ink);border-color:var(--accent);box-shadow:var(--glow);background:var(--accent-soft)}
+.whoami{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;font-family:var(--f-num);font-size:.8rem;color:var(--muted)}
+button.small{padding:6px 12px;font-size:.75rem}
+.linkbtn{all:unset;cursor:pointer;color:var(--high);font-family:var(--f-num);font-size:.72rem;margin-top:4px;display:inline-block}
+.linkbtn:focus-visible{outline:2px solid var(--accent)}
+.subh{font-family:var(--f-display);font-size:.95rem;margin:14px 0 0;color:var(--accent)}
+.gateform{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end}
+.acc{display:grid;gap:8px}
+.accrow{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,minmax(56px,auto));gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.accrow.head{font-family:var(--f-num);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-top:0}
+.accrow .who{min-width:0;overflow-wrap:anywhere}
+.accrow .who small{display:block;color:var(--muted);font-size:.75rem;font-family:var(--f-num)}
+.accrow label,.accrow.head span:not(:first-child){justify-items:center;text-align:center}
+.accrow input[type=checkbox]{width:24px;height:24px;min-height:0;accent-color:var(--accent);cursor:pointer}
+@media (max-width:640px){
+  .accrow{grid-template-columns:minmax(0,1fr) repeat(3,44px);gap:6px}
+  .accrow.head span{font-size:.6rem}
+  .wrap{gap:22px;padding-block:18px 40px}
+  #tableBox{display:none}
+  .daycards{display:grid}
+  .tiles{grid-template-columns:1fr 1fr;gap:10px}
+  .tile .n{font-size:1.45rem}
+  .tile:first-child{grid-column:1/-1}
+  .ring{width:130px;height:130px}
+  .ring svg{width:130px;height:130px}
+  .hero{gap:14px}
+  .card{padding:12px}
+  form{grid-template-columns:1fr 1fr}
+  form label:nth-of-type(n+3){grid-column:auto}
+  .actions button{flex:1 1 140px;min-height:48px}
+  input,select{font-size:16px;min-height:46px}
+  .legend{font-size:.75rem;gap:10px}
+}
+@media (max-width:380px){form{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="eyebrow"><span class="live">online</span> · painel glicêmico · <span id="clock"></span></div>
+      <h1><span id="hello">Olá</span><span class="sep">, </span><span class="name">Wiliany</span></h1>
+      <p class="lede" id="lede">Monitor de glicemia capilar da Wiliany.</p>
+      <div class="metas">
+        <span class="meta">JEJUM ≤ <b>95</b></span>
+        <span class="meta">PRÉ-REFEIÇÃO ≤ <b>100</b></span>
+        <span class="meta">1H PÓS ≤ <b>140</b></span>
+        <span class="meta">2H PÓS ≤ <b>120</b></span>
+      </div>
+      <div class="whoami" id="whoami" hidden><span id="whoText"></span> <button type="button" class="ghost small" id="bOut">Sair</button></div>
+    </div>
+    <div id="ringBox" class="ring"></div>
+  </header>
+
+  <section id="authSec" hidden>
+    <h2 id="authTitle">Entrar no painel</h2>
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab on" data-tab="entrar" role="tab" aria-selected="true">Entrar</button>
+        <button type="button" class="tab" data-tab="criar" role="tab" aria-selected="false">Criar conta</button>
+        <button type="button" class="tab" data-tab="esqueci" role="tab" aria-selected="false">Esqueci a senha</button>
+      </div>
+      <form class="gateform" id="fEntrar">
+        <label for="eEmail">E-mail<input type="email" id="eEmail" autocomplete="email" required maxlength="120"></label>
+        <label for="ePass">Senha<input type="password" id="ePass" autocomplete="current-password" required maxlength="100"></label>
+        <div class="actions"><button type="submit">Entrar</button></div>
+      </form>
+      <form class="gateform" id="fCriar" hidden>
+        <label for="cNome">Seu nome<input type="text" id="cNome" autocomplete="name" required maxlength="60"></label>
+        <label for="cEmail">E-mail<input type="email" id="cEmail" autocomplete="email" required maxlength="120"></label>
+        <label for="cPass">Senha (mín. 8)<input type="password" id="cPass" autocomplete="new-password" required minlength="8" maxlength="100"></label>
+        <div class="actions"><button type="submit">Criar conta</button></div>
+        <p class="note full">Depois de criar a conta, o Higor precisa liberar o seu acesso.</p>
+      </form>
+      <form class="gateform" id="fEsqueci" hidden>
+        <label for="rEmail">E-mail da conta<input type="email" id="rEmail" autocomplete="email" required maxlength="120"></label>
+        <div class="actions"><button type="submit">Enviar link para trocar a senha</button></div>
+      </form>
+      <p class="status" id="authStatus" role="status"></p>
+    </div>
+  </section>
+
+  <section id="resetSec" hidden>
+    <h2>Criar nova senha</h2>
+    <form class="card gateform" id="fReset">
+      <label for="nPass">Nova senha (mín. 8)<input type="password" id="nPass" autocomplete="new-password" required minlength="8" maxlength="100"></label>
+      <div class="actions"><button type="submit">Salvar nova senha</button></div>
+      <p class="status" id="resetStatus" role="status"></p>
+    </form>
+  </section>
+
+  <p class="card note" id="waitNote" hidden>Sua conta foi criada. Agora o Higor precisa liberar o seu acesso no painel dele. Depois disso, é só abrir esta página de novo.</p>
+  <p class="card note" id="noView" hidden>O dono do painel ainda não liberou a visualização das medidas para você.</p>
+
+  <div class="area" id="dataArea" hidden>
+  <div class="printhead" id="printHead"></div>
+  <div class="pdfbar noprint">
+    <label for="pIni">De<input type="date" id="pIni"></label>
+    <label for="pFim">Até<input type="date" id="pFim"></label>
+    <button type="button" id="bPdf">Gerar PDF</button>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <section>
+    <h2>Telemetria do período</h2>
+    <div class="card">
+      <div id="chartBox"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </section>
+  <section>
+    <h2>Grade de medidas</h2>
+    <div class="card scroll" id="tableBox"></div>
+    <div class="daycards" id="dayCards"></div>
+    <p class="note">Valores em mg/dL. Verde está dentro da meta, rosa está acima. "conv." marca medidas lançadas por convidados.</p>
+  </section>
+  <section id="obsSec" hidden>
+    <h2>Registro de observações</h2>
+    <ul class="obs card" id="obsList"></ul>
+  </section>
+  </div>
+
+  <section id="novaSec" hidden>
+    <h2>Nova medida</h2>
+    <form class="card" id="form">
+      <label for="fData">Data<input type="date" id="fData" required></label>
+      <label for="fMom">Momento<select id="fMom" required></select></label>
+      <label for="fVal">Valor (mg/dL)<input type="number" id="fVal" min="20" max="600" step="1" inputmode="numeric" required></label>
+      <label for="fHora">Hora (opcional)<input type="time" id="fHora"></label>
+      <label for="fObs" class="full">Observação (opcional)<input type="text" id="fObs" maxlength="400" placeholder="Ex.: medi 20 min depois do horário"></label>
+      <div class="actions">
+        <button type="submit" id="bSave">Registrar</button>
+        <button type="button" class="ghost" id="bClear">Limpar</button>
+        <button type="button" class="danger" id="bDel" hidden>Remover esta medida</button>
+      </div>
+      <p class="status" id="status" role="status"></p>
+    </form>
+  </section>
+
+  <section id="accSec" hidden>
+    <h2>Acessos</h2>
+    <div class="card acc">
+      <p class="note">Quem criar conta nesta página aparece aqui. Marque o que cada pessoa pode fazer. Excluir medidas é sempre só seu, e o banco de dados garante isso.</p>
+      <div class="accrow head"><span>Pessoa</span><span>Ver</span><span>Lançar</span><span>Editar as próprias</span></div>
+      <div id="accList"></div>
+      <p class="status" id="accStatus" role="status"></p>
+    </div>
+  </section>
+
+  <footer class="noprint">Esta página organiza números e não substitui a avaliação do seu médico ou nutricionista.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+"use strict";
+const MOMS=[
+  {k:"jejum",l:"Jejum",meta:95,c:"#43e6ff"},
+  {k:"pos_cafe",l:"1h após café",meta:140,c:"#a46bff"},
+  {k:"pre_almoco",l:"Antes do almoço",meta:100,c:"#3dffb0"},
+  {k:"pos_almoco",l:"1h após almoço",meta:140,c:"#ffc857"},
+  {k:"pre_jantar",l:"Antes do jantar",meta:100,c:"#7dff6b"},
+  {k:"pos_jantar",l:"1h após jantar",meta:140,c:"#ff8ae2"},
+  {k:"outro",l:"Outro (1h após lanche)",meta:140,c:"#9fb3d1"}
+];
+const M=Object.fromEntries(MOMS.map(m=>[m.k,m]));
+const COLS=MOMS.filter(m=>m.k!=="outro");
+let rows=[], db=null;
+const $=id=>document.getElementById(id);
+const fmtD=s=>{const[y,m,d]=s.split("-");return d+"/"+m+"/"+y.slice(2)};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isOut=r=>r.valor>M[r.momento].meta;
+// Validação: só aceita formatos conhecidos, tanto na entrada quanto nos dados lidos do banco.
+const RE_DATE=/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, RE_HORA=/^([01]\d|2[0-3]):[0-5]\d$/;
+const cleanText=t=>String(t??"").replace(/[\u0000-\u001f\u007f<>]/g,"").trim().slice(0,400);
+function clean(r){
+  if(!r||typeof r!=="object")return null;
+  if(!RE_DATE.test(r.data)||!Object.hasOwn(M,r.momento))return null;
+  if(!Number.isInteger(r.valor)||r.valor<20||r.valor>600)return null;
+  const o={data:r.data,momento:r.momento,valor:r.valor};
+  if(typeof r.hora==="string"&&RE_HORA.test(r.hora))o.hora=r.hora;
+  if(typeof r.obs==="string"){const t=cleanText(r.obs);if(t)o.obs=t}
+  if(typeof r.por==="string"&&/^[A-Za-z0-9_-]{4,64}$/.test(r.por))o.por=r.por;
+  return o;
+}
+// Limite de envios: no máximo 10 gravações por minuto e 1 a cada 2 segundos nesta aba.
+const LIMIT={max:10,win:60000,gap:2000},stamps=[];
+function rateOk(){
+  const now=Date.now();while(stamps.length&&now-stamps[0]>LIMIT.win)stamps.shift();
+  if(stamps.length&&now-stamps[stamps.length-1]<LIMIT.gap)return "Aguarde 2 segundos entre um envio e outro.";
+  if(stamps.length>=LIMIT.max)return `Limite de ${LIMIT.max} envios por minuto atingido. Tente de novo em ${Math.ceil((LIMIT.win-(now-stamps[0]))/1000)} s.`;
+  stamps.push(now);return "";
+}
+function render(){
+  const n=rows.length, out=rows.filter(isOut).length;
+  const jej=rows.filter(r=>r.momento==="jejum");
+  const avg=a=>a.length?Math.round(a.reduce((s,r)=>s+r.valor,0)/a.length):"–";
+  const pos=rows.filter(r=>M[r.momento].meta===140);
+  const pct=n?Math.round((n-out)/n*100):0;
+  drawRing(pct,n);
+  const last=[...rows].sort((a,b)=>(a.data+(a.hora||"")).localeCompare(b.data+(b.hora||""))).pop();
+  $("tiles").innerHTML=[
+    [last?`${last.valor}<small> mg/dL</small>`:"–",last?`última · ${fmtD(last.data).slice(0,5)} · ${M[last.momento].l}`:"última medida",last?(isOut(last)?"alert":"good"):""],
+    [n,"medidas registradas",""],
+    [out,"acima da meta",out?"alert":""],
+    [avg(jej),"média em jejum",""],
+    [avg(pos),"média 1h após",""]
+  ].map(([v,l,c])=>`<div class="tile ${c}"><span class="n">${v}</span><span class="l">${l}</span></div>`).join("");
+
+  $("dayCards").innerHTML="";
+  if(!n){
+    const msg=db?"Nenhuma medida ainda. Anote a primeira no formulário abaixo.":"Carregando medidas… Se nada aparecer, entre na sua conta do Claude para ver e salvar os dados.";
+    $("chartBox").innerHTML=$("tableBox").innerHTML=`<div class="empty">${msg}</div>`;
+    $("obsSec").hidden=true; return;
+  }
+  const days=[...new Set(rows.map(r=>r.data))].sort();
+  // tabela
+  const by={};rows.forEach(r=>{(by[r.data]??={})[r.momento]=r});
+  let h=`<table><thead><tr><th>Data</th>${COLS.map(m=>`<th>${m.l}</th>`).join("")}</tr></thead><tbody>`;
+  days.forEach(d=>{
+    h+=`<tr><td class="d">${fmtD(d)}</td>`;
+    COLS.forEach(m=>{const r=by[d][m.k];
+      h+=r?`<td class="v ${isOut(r)?"out":"in"}" tabindex="0" data-d="${d}" data-m="${m.k}">${r.valor}${r.hora||r.src!=="own"?`<small>${[r.hora?esc(r.hora):"",r.src!=="own"?"conv.":""].filter(Boolean).join(" · ")}</small>`:""}</td>`
+          :`<td class="v" tabindex="0" data-d="${d}" data-m="${m.k}" aria-label="vazio"></td>`});
+    h+="</tr>";
+  });
+  $("tableBox").innerHTML=h+"</tbody></table>";
+  $("dayCards").innerHTML=[...days].reverse().map(d=>`<div class="day"><h3>${fmtD(d)}</h3><ul>${MOMS.filter(m=>by[d][m.k]).map(m=>{const r=by[d][m.k];return `<li class="${isOut(r)?"out":"in"}"><button type="button" data-d="${d}" data-m="${m.k}"><span class="k">${esc(m.l)}</span><span class="vv">${r.valor}${r.src!=="own"?"<small> conv.</small>":""}</span></button></li>`}).join("")}</ul></div>`).join("");
+  // observações
+  const obs=rows.filter(r=>r.obs||r.momento==="outro"||r.src!=="own").sort((a,b)=>a.data.localeCompare(b.data));
+  $("obsSec").hidden=!obs.length;
+  $("obsList").innerHTML=obs.map(r=>`<li><b>${fmtD(r.data)}</b> · ${M[r.momento].l}: <b>${r.valor}</b>${r.obs?" · "+esc(r.obs):""}${r.src!=="own"?" · lançada por "+esc(names[r.src]||"convidado"):""}</li>`).join("");
+  drawChart(days);
+}
+
+function drawChart(days){
+  const W=900,H=340,L=44,R=16,T=16,B=40;
+  const lo=60,hi=Math.max(160,Math.ceil(Math.max(...rows.map(r=>r.valor))/20)*20);
+  const x=i=>L+(days.length===1?(W-L-R)/2:i*(W-L-R)/(days.length-1));
+  const y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Glicemia por dia">`;
+  for(let v=lo;v<=hi;v+=20){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="var(--f-num)">${v}</text>`}
+  [[95,"jejum 95"],[100,"pré 100"],[140,"1h pós 140"]].forEach(([v,t])=>{
+    s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--high)" stroke-width="1.2" stroke-dasharray="5 4" opacity=".7"/><text x="${W-R-4}" y="${y(v)-5}" text-anchor="end" font-size="11" fill="var(--high)">${t}</text>`});
+  s+=`<defs><filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  const step=days.length>16?2:1;
+  days.forEach((d,i)=>{if(i%step===0)s+=`<text x="${x(i)}" y="${H-B+20}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--f-num)">${fmtD(d).slice(0,5)}</text>`});
+  // linha do jejum
+  const jj=rows.filter(r=>r.momento==="jejum").sort((a,b)=>a.data.localeCompare(b.data));
+  if(jj.length>1)s+=`<polyline fill="none" stroke="${M.jejum.c}" stroke-width="2" opacity=".7" filter="url(#gl)" points="${jj.map(r=>x(days.indexOf(r.data))+","+y(r.valor)).join(" ")}"/>`;
+  const offs={jejum:-12,pos_cafe:-8,pre_almoco:-4,pos_almoco:0,pre_jantar:4,pos_jantar:8,outro:12};
+  rows.forEach(r=>{const cx=x(days.indexOf(r.data))+offs[r.momento],cy=y(r.valor),o=isOut(r);
+    s+=`<circle cx="${cx}" cy="${cy}" r="${o?7:5}" fill="${M[r.momento].c}" stroke="${o?"var(--high)":"var(--bg)"}" stroke-width="${o?3:1.5}" filter="url(#gl)"><title>${fmtD(r.data)} · ${M[r.momento].l}: ${r.valor} mg/dL</title></circle>`;
+    if(o)s+=`<text x="${cx}" y="${cy-12}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--high)" font-family="var(--f-num)">${r.valor}</text>`});
+  $("chartBox").innerHTML=s+"</svg>";
+}
+
+function drawRing(pct,n){
+  const R=64,C=2*Math.PI*R,off=C*(1-pct/100);
+  $("ringBox").innerHTML=`<svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="${pct}% dentro da meta">
+  <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#43e6ff"/><stop offset="1" stop-color="#a46bff"/></linearGradient>
+  <filter id="rgl" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <circle cx="80" cy="80" r="${R+10}" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 6"/>
+  <circle cx="80" cy="80" r="${R}" fill="none" stroke="rgba(94,234,255,.12)" stroke-width="10"/>
+  <circle cx="80" cy="80" r="${R}" fill="none" stroke="url(#rg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${n?off:C}" transform="rotate(-90 80 80)" filter="url(#rgl)"/>
+  <text x="80" y="80" text-anchor="middle" font-family="var(--f-num)" font-weight="700" font-size="30" fill="var(--ink)">${n?pct+"%":"–"}</text>
+  <text x="80" y="102" text-anchor="middle" font-family="var(--f-num)" font-size="10" letter-spacing="1.5" fill="var(--muted)">NA META</text></svg>`;
+}
+// Supabase: a chave publicável pode ficar no navegador; quem protege os dados são as regras (RLS) do banco.
+const SB_URL="https://vdczzukvsqkwxuuqnspw.supabase.co";
+const SB_KEY="sb_publishable_xG3HbvHJz5pxM0un0dKq8Q_LGkIrpkq";
+const DONO_ID="eddba25a-18f2-4ae8-9a0c-2f160a480f8e";
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
+let canWrite=false,myId="",owner=false,membro=null,names={};
+const RE_EMAIL=/^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[^\s@<>]{2,}$/;
+
+$("fMom").innerHTML=MOMS.map(m=>`<option value="${m.k}">${m.l}</option>`).join("");
+$("legend").innerHTML=MOMS.map(m=>`<span><i class="dot" style="background:${m.c}"></i>${m.l}</span>`).join("")+`<span><i class="dot" style="background:transparent;border:2px solid var(--high)"></i>acima da meta</span>`;
+try{$("fData").value=new Date().toISOString().slice(0,10)}catch(e){}
+
+function msgErro(err){
+  const t=String(err?.message||err?.code||"");
+  if(t.includes("limite_de_envios"))return "Muitos envios seguidos. Aguarde um minuto e tente de novo.";
+  if(err?.code==="23505")return "Já existe uma medida nesse dia e momento.";
+  if(err?.code==="42501"||t.includes("row-level security"))return "Você não tem permissão para isso.";
+  if(t.includes("Invalid login credentials"))return "E-mail ou senha incorretos.";
+  if(t.includes("Email not confirmed"))return "Confirme o seu e-mail pelo link que enviamos antes de entrar.";
+  if(t.includes("already registered"))return "Esse e-mail já tem conta. Use a aba Entrar.";
+  if(t.toLowerCase().includes("rate limit"))return "Muitas tentativas. Aguarde alguns minutos.";
+  return "Algo deu errado. Tente de novo.";
+}
+const show=(id,on)=>{$(id).hidden=!on};
+
+// ---- Autenticação ----
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b)});
+  show("fEntrar",b.dataset.tab==="entrar");show("fCriar",b.dataset.tab==="criar");show("fEsqueci",b.dataset.tab==="esqueci");
+  $("authStatus").textContent="";
+}));
+let authBusy=false;
+async function authDo(fn){if(authBusy)return;const lim=rateOk();if(lim){$("authStatus").textContent=lim;return}authBusy=true;$("authStatus").textContent="Aguarde…";try{await fn()}catch(err){$("authStatus").textContent=msgErro(err)}authBusy=false}
+$("fEntrar").addEventListener("submit",e=>{e.preventDefault();authDo(async()=>{
+  const email=$("eEmail").value.trim().toLowerCase();if(!RE_EMAIL.test(email))throw {message:"x"};
+  const {error}=await sb.auth.signInWithPassword({email,password:$("ePass").value});if(error)throw error;
+  $("ePass").value="";$("authStatus").textContent="";
+})});
+$("fCriar").addEventListener("submit",e=>{e.preventDefault();authDo(async()=>{
+  const nome=cleanText($("cNome").value).slice(0,60),email=$("cEmail").value.trim().toLowerCase(),password=$("cPass").value;
+  if(!nome||!RE_EMAIL.test(email)||password.length<8){$("authStatus").textContent="Preencha nome, e-mail e uma senha de pelo menos 8 caracteres.";return}
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{nome},emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
+  $("cPass").value="";
+  $("authStatus").textContent=data.session?"Conta criada.":"Conta criada. Abra o e-mail que enviamos e confirme para poder entrar.";
+})});
+$("fEsqueci").addEventListener("submit",e=>{e.preventDefault();authDo(async()=>{
+  const email=$("rEmail").value.trim().toLowerCase();if(!RE_EMAIL.test(email)){$("authStatus").textContent="Digite um e-mail válido.";return}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;
+  $("authStatus").textContent="Se esse e-mail tiver conta, enviamos um link para criar uma nova senha.";
+})});
+$("fReset").addEventListener("submit",async e=>{e.preventDefault();
+  const p=$("nPass").value;if(p.length<8){$("resetStatus").textContent="Use pelo menos 8 caracteres.";return}
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){$("resetStatus").textContent=msgErro(error);return}
+  $("nPass").value="";show("resetSec",false);history.replaceState(null,"",location.pathname);boot();
+});
+$("bOut").onclick=async()=>{await sb.auth.signOut();location.reload()};
+
+// ---- Dados ----
+async function carregar(){
+  const {data,error}=await sb.from("glic_leituras").select("id,data,momento,valor,hora,obs,criado_por").order("data");
+  if(error){$("status").textContent=msgErro(error);return}
+  db=true;
+  rows=(data||[]).map(r=>{const c=clean({...r,hora:r.hora?String(r.hora).slice(0,5):undefined,obs:r.obs??undefined});return c&&{...c,id:r.id,criado_por:r.criado_por,src:r.criado_por===DONO_ID?"own":r.criado_por}}).filter(Boolean);
+  render();
+}
+function fill(d,m){
+  const r=rows.find(r=>r.data===d&&r.momento===m);
+  $("fData").value=d;$("fMom").value=m;
+  $("fVal").value=r?r.valor:"";$("fHora").value=r?.hora||"";$("fObs").value=r?.obs||"";
+  $("bDel").hidden=!(r&&owner);
+  const podeEditar=r&&(owner||(membro?.pode_editar&&r.criado_por===myId));
+  $("status").textContent=!r?"":podeEditar?"Editando a medida existente.":"Esta medida já existe. Só o dono do painel pode alterar ou excluir.";
+  if(canWrite){$("form").scrollIntoView({behavior:"smooth",block:"center"});$("fVal").focus({preventScroll:true})}
+}
+$("tableBox").addEventListener("click",e=>{const td=e.target.closest("td.v");if(td)fill(td.dataset.d,td.dataset.m)});
+$("tableBox").addEventListener("keydown",e=>{const td=e.target.closest("td.v");if(td&&(e.key==="Enter"||e.key===" ")){e.preventDefault();fill(td.dataset.d,td.dataset.m)}});
+$("dayCards").addEventListener("click",e=>{const b=e.target.closest("button[data-d]");if(b)fill(b.dataset.d,b.dataset.m)});
+$("bClear").onclick=()=>{["fVal","fHora","fObs"].forEach(i=>$(i).value="");$("bDel").hidden=true;$("status").textContent=""};
+let busy=false;
+$("form").addEventListener("submit",async e=>{
+  e.preventDefault();if(busy)return;
+  if(!canWrite){$("status").textContent="Você não tem permissão para lançar medidas.";return}
+  const raw=$("fVal").value.trim();
+  if(!/^\d{2,3}$/.test(raw)){$("status").textContent="Digite o valor em mg/dL, só números (20 a 600).";return}
+  const doc=clean({data:$("fData").value,momento:$("fMom").value,valor:Number(raw),hora:$("fHora").value,obs:$("fObs").value});
+  if(!doc){$("status").textContent="Confira a data, o momento e o valor (20 a 600 mg/dL).";return}
+  if($("fHora").value&&!doc.hora){$("status").textContent="Hora inválida. Use o formato 08:30.";return}
+  const lim=rateOk();if(lim){$("status").textContent=lim;return}
+  const ex=rows.find(r=>r.data===doc.data&&r.momento===doc.momento);
+  const reg={data:doc.data,momento:doc.momento,valor:doc.valor,hora:doc.hora||null,obs:doc.obs||null};
+  busy=true;$("status").textContent="Salvando…";
+  try{
+    let res;
+    if(ex){
+      if(!(owner||(membro?.pode_editar&&ex.criado_por===myId)))throw {code:"42501"};
+      res=await sb.from("glic_leituras").update(reg).eq("id",ex.id).select("id");
+      if(!res.error&&!res.data?.length)throw {code:"42501"};
+    }else res=await sb.from("glic_leituras").insert(reg).select("id");
+    if(res.error)throw res.error;
+    $("status").textContent=`Salvo: ${fmtD(doc.data)}, ${M[doc.momento].l}, ${doc.valor} mg/dL.`;$("bDel").hidden=!owner;
+    await carregar();
+  }catch(err){$("status").textContent=msgErro(err)}
+  busy=false;
+});
+let delArm=false;
+$("bDel").onclick=async()=>{
+  if(!owner)return;
+  const r=rows.find(r=>r.data===$("fData").value&&r.momento===$("fMom").value);if(!r)return;
+  if(!delArm){delArm=true;$("bDel").textContent="Toque de novo para confirmar";setTimeout(()=>{delArm=false;$("bDel").textContent="Remover esta medida"},4000);return}
+  delArm=false;$("bDel").textContent="Remover esta medida";
+  const lim=rateOk();if(lim){$("status").textContent=lim;return}
+  const {error,data}=await sb.from("glic_leituras").delete().eq("id",r.id).select("id");
+  if(error||!data?.length){$("status").textContent=msgErro(error||{code:"42501"});return}
+  $("status").textContent="Medida removida.";$("bDel").hidden=true;$("fVal").value="";carregar();
+};
+
+// ---- Acessos (só o dono) ----
+let membros=[];
+async function carregarMembros(){
+  const {data,error}=await sb.from("glic_membros").select("user_id,nome,papel,pode_ver,pode_lancar,pode_editar,criado_em").neq("papel","dono").order("criado_em");
+  if(error){$("accStatus").textContent=msgErro(error);return}
+  membros=data||[];membros.forEach(m=>names[m.user_id]=cleanText(m.nome).slice(0,60)||"Convidado");renderAcc();render();
+}
+function renderAcc(){
+  $("accList").innerHTML=membros.length?membros.map(m=>`<div class="accrow"><div class="who">${esc(cleanText(m.nome)||"Sem nome")}<small>${m.papel==="pendente"?"aguardando liberação":"convidado"} · desde ${esc(fmtD(String(m.criado_em).slice(0,10)))}</small><button type="button" class="linkbtn" data-rm="${esc(m.user_id)}">Remover acesso</button></div>${["pode_ver","pode_lancar","pode_editar"].map(f=>`<label><input type="checkbox" data-u="${esc(m.user_id)}" data-f="${f}" ${m[f]?"checked":""} aria-label="${f.replace("pode_","")} para ${esc(cleanText(m.nome))}"></label>`).join("")}</div>`).join(""):`<p class="note">Ninguém pediu acesso ainda. Mande o link desta página para a Wiliany criar a conta dela.</p>`;
+}
+$("accList").addEventListener("change",async e=>{
+  const cb=e.target.closest("input[type=checkbox]");if(!cb||!owner)return;
+  const f=cb.dataset.f;if(!["pode_ver","pode_lancar","pode_editar"].includes(f))return;
+  const lim=rateOk();if(lim){$("accStatus").textContent=lim;cb.checked=!cb.checked;return}
+  $("accStatus").textContent="Salvando…";
+  const {error,data}=await sb.from("glic_membros").update({[f]:cb.checked,papel:"convidado"}).eq("user_id",cb.dataset.u).select("user_id");
+  if(error||!data?.length){cb.checked=!cb.checked;$("accStatus").textContent=msgErro(error||{code:"42501"});return}
+  $("accStatus").textContent="Permissões salvas.";carregarMembros();
+});
+let rmArm="";
+$("accList").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-rm]");if(!b||!owner)return;
+  if(rmArm!==b.dataset.rm){rmArm=b.dataset.rm;b.textContent="Toque de novo para confirmar";setTimeout(()=>{if(rmArm===b.dataset.rm){rmArm="";b.textContent="Remover acesso"}},4000);return}
+  rmArm="";
+  const {error}=await sb.from("glic_membros").delete().eq("user_id",b.dataset.rm);
+  $("accStatus").textContent=error?msgErro(error):"Acesso removido. As medidas que essa pessoa lançou continuam salvas.";carregarMembros();
+});
+
+// ---- PDF: usa a impressão do navegador ("Salvar como PDF"), filtrando o período escolhido ----
+$("bPdf").onclick=()=>{
+  const ini=$("pIni").value,fim=$("pFim").value;
+  if((ini&&!RE_DATE.test(ini))||(fim&&!RE_DATE.test(fim))||(ini&&fim&&ini>fim)){$("status").textContent="Confira as datas do período.";return}
+  const todas=rows;
+  rows=todas.filter(r=>(!ini||r.data>=ini)&&(!fim||r.data<=fim));
+  if(!rows.length){rows=todas;alertBox("Não há medidas nesse período.");return}
+  const ds=rows.map(r=>r.data).sort();
+  $("printHead").textContent=`Relatório de glicemia capilar · Wiliany · ${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])} · gerado em ${new Date().toLocaleDateString("pt-BR")}. Metas: jejum ≤ 95, antes das refeições ≤ 100, 1h após ≤ 140, 2h após ≤ 120 mg/dL.`;
+  render();
+  const volta=()=>{rows=todas;render();window.removeEventListener("afterprint",volta)};
+  window.addEventListener("afterprint",volta);
+  setTimeout(()=>window.print(),50);
+};
+function alertBox(t){$("status").textContent=t;$("bPdf").insertAdjacentHTML("afterend",`<span class="note" id="pdfMsg">${esc(t)}</span>`);setTimeout(()=>$("pdfMsg")?.remove(),4000)}
+
+// ---- Início ----
+function tick(){const d=new Date(),h=d.getHours();$("hello").textContent=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";$("clock").textContent=d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+tick();setInterval(tick,30000);
+function hideAll(){["authSec","resetSec","waitNote","noView","dataArea","novaSec","accSec","whoami"].forEach(i=>show(i,false))}
+let recovering=/type=recovery/.test(location.hash);
+async function boot(){
+  hideAll();
+  if(recovering){show("resetSec",true);return}
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){show("authSec",true);return}
+  myId=session.user.id;
+  show("whoami",true);
+  let {data:m}=await sb.from("glic_membros").select("user_id,nome,papel,pode_ver,pode_lancar,pode_editar").eq("user_id",myId).maybeSingle();
+  if(!m){
+    const nome=cleanText(session.user.user_metadata?.nome||session.user.email?.split("@")[0]).slice(0,60);
+    const ins=await sb.from("glic_membros").insert({user_id:myId,nome}).select("user_id,nome,papel,pode_ver,pode_lancar,pode_editar").maybeSingle();
+    m=ins.data;
+  }
+  membro=m;owner=m?.papel==="dono";
+  $("whoText").textContent="Conectado como "+(cleanText(m?.nome)||"você");
+  if(!m||m.papel==="pendente"){show("waitNote",true);return}
+  const ver=owner||m.pode_ver;canWrite=owner||m.pode_lancar;
+  show("noView",!ver);show("dataArea",ver);show("novaSec",canWrite);show("accSec",owner);
+  $("lede").textContent=owner?"Monitor de glicemia capilar da Wiliany. Você é o dono do painel.":"Monitor de glicemia capilar da Wiliany.";
+  if(ver)carregar();
+  if(owner)carregarMembros();
+}
+sb.auth.onAuthStateChange((ev)=>{
+  if(ev==="PASSWORD_RECOVERY"){recovering=true;boot()}
+  else if(ev==="SIGNED_IN"&&!recovering){setTimeout(boot,0)}
+  else if(ev==="SIGNED_OUT"){hideAll();show("authSec",true)}
+});
+render();boot();
+setInterval(()=>{if(!document.hidden&&!$("dataArea").hidden)carregar()},60000);
+
+</script>
+</body>
+</html>
