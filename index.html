@@ -222,8 +222,6 @@ button.small{padding:6px 12px;font-size:.75rem}
   <div class="area" id="dataArea" hidden>
   <div class="printhead" id="printHead"></div>
   <div class="pdfbar noprint">
-    <label for="pIni">De<input type="date" id="pIni"></label>
-    <label for="pFim">Até<input type="date" id="pFim"></label>
     <button type="button" id="bPdf">Gerar PDF</button>
   </div>
   <div class="tiles" id="tiles"></div>
@@ -538,19 +536,11 @@ $("accList").addEventListener("click",async e=>{
 
 // ---- PDF: usa a impressão do navegador ("Salvar como PDF"), filtrando o período escolhido ----
 $("bPdf").onclick=()=>{
-  const ini=$("pIni").value,fim=$("pFim").value;
-  if((ini&&!RE_DATE.test(ini))||(fim&&!RE_DATE.test(fim))||(ini&&fim&&ini>fim)){$("status").textContent="Confira as datas do período.";return}
-  const todas=rows;
-  rows=todas.filter(r=>(!ini||r.data>=ini)&&(!fim||r.data<=fim));
-  if(!rows.length){rows=todas;alertBox("Não há medidas nesse período.");return}
+  if(!rows.length){$("status").textContent="Ainda não há medidas para gerar o PDF.";return}
   const ds=rows.map(r=>r.data).sort();
-  $("printHead").textContent=`Relatório de glicemia capilar · Wiliany · ${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])} · gerado em ${new Date().toLocaleDateString("pt-BR")}. Metas: jejum ≤ 95, antes das refeições ≤ 100, 1h após ≤ 140, 2h após ≤ 120 mg/dL.`;
-  render();
-  const volta=()=>{rows=todas;render();window.removeEventListener("afterprint",volta)};
-  window.addEventListener("afterprint",volta);
+  $("printHead").textContent=`Relatório de glicemia capilar · Wiliany · ${fmtD(ds[0])} a ${fmtD(ds[ds.length-1])} · ${rows.length} medidas · gerado em ${new Date().toLocaleDateString("pt-BR")}. Metas: jejum ≤ 95, antes das refeições ≤ 100, 1h após ≤ 140, 2h após ≤ 120 mg/dL.`;
   setTimeout(()=>window.print(),50);
 };
-function alertBox(t){$("status").textContent=t;$("bPdf").insertAdjacentHTML("afterend",`<span class="note" id="pdfMsg">${esc(t)}</span>`);setTimeout(()=>$("pdfMsg")?.remove(),4000)}
 
 // ---- Início ----
 function tick(){const d=new Date(),h=d.getHours();$("hello").textContent=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";$("clock").textContent=d.toLocaleDateString("pt-BR")+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
