@@ -103,6 +103,8 @@ footer{font-size:.8rem;color:var(--muted);font-family:var(--f-num)}
 .pdfbar label{min-width:140px;flex:1 1 140px}
 .pdfbar button{flex:0 0 auto}
 .printhead{display:none}
+.chartbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.chartbar label{flex:1 1 180px;display:flex;flex-direction:column;gap:4px}
 @media print{
   :root{--bg:#fff;--bg2:#fff;--surface:#fff;--ink:#111;--muted:#555;--line:#ccc;--accent:#0b5d8a;--accent2:#5b3aa0;--ok:#137a4a;--ok-soft:#e6f4ec;--high:#b3261e;--high-soft:#fbe4e2;--glow:none;color-scheme:light}
   @page{size:A4;margin:14mm}
@@ -228,6 +230,10 @@ button.small{padding:6px 12px;font-size:.75rem}
   <section>
     <h2>Telemetria do período</h2>
     <div class="card">
+      <div class="chartbar noprint">
+        <label>Tipo de gráfico<select id="chartTipo"></select></label>
+        <label id="chartMomWrap">Medida<select id="chartMom"></select></label>
+      </div>
       <div id="chartBox"></div>
       <div class="legend" id="legend"></div>
     </div>
@@ -353,28 +359,91 @@ function render(){
   const obs=rows.filter(r=>r.obs||r.momento==="outro"||r.src!=="own").sort((a,b)=>a.data.localeCompare(b.data));
   $("obsSec").hidden=!obs.length;
   $("obsList").innerHTML=obs.map(r=>`<li><b>${fmtD(r.data)}</b> · ${M[r.momento].l}: <b>${r.valor}</b>${r.obs?" · "+esc(r.obs):""}${r.src!=="own"?" · lançada por "+esc(names[r.src]||"convidado"):""}</li>`).join("");
-  drawChart(days);
+  drawChart();
 }
 
-function drawChart(days){
+// Tipos de gráfico: o seletor acima do gráfico escolhe a visão; a escolha fica salva neste aparelho.
+const CHARTS=[
+  {k:"pontos",l:"Pontos por dia"},
+  {k:"linhas",l:"Linhas por medida"},
+  {k:"barras",l:"Barras por dia"},
+  {k:"media",l:"Média por medida"},
+  {k:"meta",l:"Dentro x acima da meta"}
+];
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+let chartTipo=CHARTS.some(c=>c.k===lsGet("glic_chart"))?lsGet("glic_chart"):"pontos";
+let chartMom=(lsGet("glic_chart_mom")==="todas"||Object.hasOwn(M,lsGet("glic_chart_mom")||""))?lsGet("glic_chart_mom"):"todas";
+const svgText=(x,y,t,o="")=>`<text x="${x}" y="${y}" font-size="12" fill="var(--muted)" font-family="var(--f-num)" ${o}>${t}</text>`;
+const GLOW=`<defs><filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+function legendFor(moms,extra=true){
+  $("legend").innerHTML=moms.map(m=>`<span><i class="dot" style="background:${m.c}"></i>${m.l}</span>`).join("")+(extra?`<span><i class="dot" style="background:transparent;border:2px solid var(--high)"></i>acima da meta</span>`:"");
+}
+function drawChart(){
+  const tipo=chartTipo, mom=chartMom;
+  $("chartMomWrap").hidden=tipo==="media"||tipo==="meta";
+  const usaFiltro=!$("chartMomWrap").hidden&&mom!=="todas";
+  const data=usaFiltro?rows.filter(r=>r.momento===mom):rows;
+  const moms=MOMS.filter(m=>data.some(r=>r.momento===m.k));
+  if(!data.length){$("chartBox").innerHTML=`<div class="empty">Ainda não há medidas desse tipo.</div>`;$("legend").innerHTML="";return}
+  if(tipo==="media"||tipo==="meta")return drawResumo(tipo,moms);
+  const days=[...new Set(data.map(r=>r.data))].sort();
   const W=900,H=340,L=44,R=16,T=16,B=40;
-  const lo=60,hi=Math.max(160,Math.ceil(Math.max(...rows.map(r=>r.valor))/20)*20);
-  const x=i=>L+(days.length===1?(W-L-R)/2:i*(W-L-R)/(days.length-1));
+  const lo=tipo==="barras"?40:60,hi=Math.max(160,Math.ceil(Math.max(...data.map(r=>r.valor))/20)*20);
+  const bandW=(W-L-R)/days.length;
+  const x=tipo==="barras"?(i=>L+bandW*(i+.5)):(i=>L+(days.length===1?(W-L-R)/2:i*(W-L-R)/(days.length-1)));
   const y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
-  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Glicemia por dia">`;
-  for(let v=lo;v<=hi;v+=20){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="var(--f-num)">${v}</text>`}
-  [[95,"jejum 95"],[100,"pré 100"],[140,"1h pós 140"]].forEach(([v,t])=>{
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(CHARTS.find(c=>c.k===tipo).l)}">`+GLOW;
+  for(let v=lo;v<=hi;v+=20){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`+svgText(L-8,y(v)+4,v,`text-anchor="end"`)}
+  const metas=usaFiltro?[[M[mom].meta,"meta "+M[mom].meta]]:[[95,"jejum 95"],[100,"pré 100"],[140,"1h pós 140"]];
+  metas.forEach(([v,t])=>{
     s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--high)" stroke-width="1.2" stroke-dasharray="5 4" opacity=".7"/><text x="${W-R-4}" y="${y(v)-5}" text-anchor="end" font-size="11" fill="var(--high)">${t}</text>`});
-  s+=`<defs><filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
   const step=days.length>16?2:1;
-  days.forEach((d,i)=>{if(i%step===0)s+=`<text x="${x(i)}" y="${H-B+20}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--f-num)">${fmtD(d).slice(0,5)}</text>`});
-  // linha do jejum
-  const jj=rows.filter(r=>r.momento==="jejum").sort((a,b)=>a.data.localeCompare(b.data));
-  if(jj.length>1)s+=`<polyline fill="none" stroke="${M.jejum.c}" stroke-width="2" opacity=".7" filter="url(#gl)" points="${jj.map(r=>x(days.indexOf(r.data))+","+y(r.valor)).join(" ")}"/>`;
-  const offs={jejum:-12,pos_cafe:-8,pre_almoco:-4,pos_almoco:0,pre_jantar:4,pos_jantar:8,outro:12};
-  rows.forEach(r=>{const cx=x(days.indexOf(r.data))+offs[r.momento],cy=y(r.valor),o=isOut(r);
-    s+=`<circle cx="${cx}" cy="${cy}" r="${o?7:5}" fill="${M[r.momento].c}" stroke="${o?"var(--high)":"var(--bg)"}" stroke-width="${o?3:1.5}" filter="url(#gl)"><title>${fmtD(r.data)} · ${M[r.momento].l}: ${r.valor} mg/dL</title></circle>`;
-    if(o)s+=`<text x="${cx}" y="${cy-12}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--high)" font-family="var(--f-num)">${r.valor}</text>`});
+  days.forEach((d,i)=>{if(i%step===0)s+=svgText(x(i),H-B+20,fmtD(d).slice(0,5),`text-anchor="middle"`)});
+  const tip=r=>`<title>${fmtD(r.data)} · ${M[r.momento].l}: ${r.valor} mg/dL</title>`;
+  if(tipo==="barras"){
+    const gap=Math.min(6,bandW*.15), bw=Math.max(2,(bandW-gap*2)/moms.length);
+    data.forEach(r=>{const i=days.indexOf(r.data),j=moms.findIndex(m=>m.k===r.momento),o=isOut(r);
+      const bx=L+bandW*i+gap+j*bw, by=y(r.valor);
+      s+=`<rect x="${bx}" y="${by}" width="${Math.max(1,bw-1)}" height="${y(lo)-by}" fill="${M[r.momento].c}" opacity="${o?1:.75}" stroke="${o?"var(--high)":"none"}" stroke-width="${o?2:0}">${tip(r)}</rect>`;
+      if(o&&(moms.length===1||bw>=10))s+=`<text x="${bx+bw/2}" y="${by-5}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--high)" font-family="var(--f-num)">${r.valor}</text>`});
+    legendFor(moms);
+  }else{
+    const linhas=tipo==="linhas"?moms:moms.filter(m=>m.k==="jejum");
+    linhas.forEach(m=>{const pts=data.filter(r=>r.momento===m.k).sort((a,b)=>a.data.localeCompare(b.data));
+      if(pts.length>1)s+=`<polyline fill="none" stroke="${m.c}" stroke-width="${tipo==="linhas"?2.5:2}" opacity="${tipo==="linhas"?.9:.7}" filter="url(#gl)" points="${pts.map(r=>x(days.indexOf(r.data))+","+y(r.valor)).join(" ")}"/>`});
+    const offs=tipo==="linhas"||usaFiltro?{}:{jejum:-12,pos_cafe:-8,pre_almoco:-4,pos_almoco:0,pre_jantar:4,pos_jantar:8,outro:12};
+    data.forEach(r=>{const cx=x(days.indexOf(r.data))+(offs[r.momento]||0),cy=y(r.valor),o=isOut(r),rr=tipo==="linhas"?(o?5:3.5):(o?7:5);
+      s+=`<circle cx="${cx}" cy="${cy}" r="${rr}" fill="${M[r.momento].c}" stroke="${o?"var(--high)":"var(--bg)"}" stroke-width="${o?3:1.5}" filter="url(#gl)">${tip(r)}</circle>`;
+      if(o&&(tipo!=="linhas"||usaFiltro))s+=`<text x="${cx}" y="${cy-12}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--high)" font-family="var(--f-num)">${r.valor}</text>`});
+    legendFor(moms);
+  }
+  $("chartBox").innerHTML=s+"</svg>";
+}
+// Média por medida e contagem dentro/acima da meta: uma barra horizontal por tipo de medida.
+function drawResumo(tipo,moms){
+  const W=900,rowH=44,L=190,R=70,T=14,H=T+moms.length*rowH+30;
+  const st=moms.map(m=>{const a=rows.filter(r=>r.momento===m.k);return{m,n:a.length,out:a.filter(isOut).length,avg:Math.round(a.reduce((s,r)=>s+r.valor,0)/a.length),max:Math.max(...a.map(r=>r.valor))}});
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${tipo==="media"?"Média por medida":"Dentro e acima da meta"}">`;
+  if(tipo==="media"){
+    const hi=Math.max(160,Math.ceil(Math.max(...st.map(t=>t.max))/20)*20),xs=v=>L+v*(W-L-R)/hi;
+    for(let v=0;v<=hi;v+=40)s+=`<line x1="${xs(v)}" x2="${xs(v)}" y1="${T}" y2="${H-26}" stroke="var(--line)"/>`+svgText(xs(v),H-8,v,`text-anchor="middle"`);
+    st.forEach((t,i)=>{const yy=T+i*rowH+8,o=t.avg>t.m.meta;
+      s+=svgText(L-10,yy+18,esc(t.m.l),`text-anchor="end" fill="var(--ink)"`)
+       +`<rect x="${L}" y="${yy}" width="${xs(t.avg)-L}" height="24" fill="${t.m.c}" opacity=".85"><title>${t.m.l}: média ${t.avg} mg/dL em ${t.n} medidas (maior ${t.max})</title></rect>`
+       +`<line x1="${xs(t.m.meta)}" x2="${xs(t.m.meta)}" y1="${yy-4}" y2="${yy+28}" stroke="var(--high)" stroke-width="2" stroke-dasharray="4 3"/>`
+       +`<text x="${xs(t.avg)+8}" y="${yy+17}" font-size="13" font-weight="700" fill="${o?"var(--high)":"var(--ink)"}" font-family="var(--f-num)">${t.avg}</text>`});
+    $("legend").innerHTML=`<span>Barra = média de cada medida (mg/dL)</span><span><i class="dot" style="background:transparent;border:2px dashed var(--high)"></i>linha tracejada = meta</span>`;
+  }else{
+    const mx=Math.max(...st.map(t=>t.n)),xs=v=>L+v*(W-L-R)/mx;
+    st.forEach((t,i)=>{const yy=T+i*rowH+8,ok=t.n-t.out;
+      s+=svgText(L-10,yy+18,esc(t.m.l),`text-anchor="end" fill="var(--ink)"`)
+       +`<rect x="${L}" y="${yy}" width="${xs(ok)-L}" height="24" fill="var(--ok)" opacity=".8"><title>${t.m.l}: ${ok} dentro da meta</title></rect>`
+       +`<rect x="${xs(ok)}" y="${yy}" width="${xs(t.n)-xs(ok)}" height="24" fill="var(--high)" opacity=".85"><title>${t.m.l}: ${t.out} acima da meta</title></rect>`
+       +`<text x="${xs(t.n)+8}" y="${yy+17}" font-size="13" font-weight="700" fill="var(--ink)" font-family="var(--f-num)">${Math.round(ok/t.n*100)}%</text>`});
+    s+=svgText(L,H-8,"quantidade de medidas · % = dentro da meta");
+    $("legend").innerHTML=`<span><i class="dot" style="background:var(--ok)"></i>dentro da meta</span><span><i class="dot" style="background:var(--high)"></i>acima da meta</span>`;
+  }
   $("chartBox").innerHTML=s+"</svg>";
 }
 
@@ -398,7 +467,11 @@ let canWrite=false,myId="",owner=false,membro=null,names={};
 const RE_EMAIL=/^[^\s@<>]{1,64}@[^\s@<>]{1,190}\.[^\s@<>]{2,}$/;
 
 $("fMom").innerHTML=MOMS.map(m=>`<option value="${m.k}">${m.l}</option>`).join("");
-$("legend").innerHTML=MOMS.map(m=>`<span><i class="dot" style="background:${m.c}"></i>${m.l}</span>`).join("")+`<span><i class="dot" style="background:transparent;border:2px solid var(--high)"></i>acima da meta</span>`;
+$("chartTipo").innerHTML=CHARTS.map(c=>`<option value="${c.k}">${c.l}</option>`).join("");
+$("chartMom").innerHTML=`<option value="todas">Todas</option>`+MOMS.map(m=>`<option value="${m.k}">${m.l}</option>`).join("");
+$("chartTipo").value=chartTipo;$("chartMom").value=chartMom;
+$("chartTipo").onchange=e=>{if(!CHARTS.some(c=>c.k===e.target.value))return;chartTipo=e.target.value;lsSet("glic_chart",chartTipo);if(rows.length)drawChart()};
+$("chartMom").onchange=e=>{const v=e.target.value;if(v!=="todas"&&!Object.hasOwn(M,v))return;chartMom=v;lsSet("glic_chart_mom",v);if(rows.length)drawChart()};
 try{$("fData").value=new Date().toISOString().slice(0,10)}catch(e){}
 
 function msgErro(err){
